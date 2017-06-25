@@ -36,6 +36,8 @@ import matplotlib.pyplot as plt
 #
 
 (x_train_mnist, y_train_mnist), (x_test_mnist, y_test_mnist) = mnist.load_data()
+x_train_mnist = (x_train_mnist-128)/255.0
+x_test_mnist = (x_test_mnist-128)/255.0
 
 #
 # Create models
@@ -50,8 +52,9 @@ G_out=Dense(common_input_dim, name='Full_G_Dense_2', use_bias=False)(x)
 auxiliary_input = Input(shape=(common_input_dim,), name='aux_input')
 x = concatenate([G_out, auxiliary_input], name='Full_Concatenate')
 # Discriminator portion
-x = Dense(64, name='Full_D_Dense_1', use_bias=False)(x)
-###x = Dense(8, name='Full_D_Dense_2', use_bias=False)(x)
+x = Dense(128, name='Full_D_Dense_1', use_bias=False)(x)
+x = Dense(128, name='Full_D_Dense_2', use_bias=False)(x)
+x = Dense(128, name='Full_D_Dense_3', use_bias=False)(x)
 main_output_obj = Dense(1, name='main_output', activation='sigmoid', use_bias=False)(x)
 #
 model = Model(inputs=[main_input, auxiliary_input], outputs=[main_output_obj])
@@ -123,24 +126,54 @@ print(model.summary())
    
 
 #
-# Freeze G
+# Freeze G and first interface in D
 #      
 
 layer = model.get_layer(name='Full_G_Dense_1')
 layer.trainable = False
 layer = model.get_layer(name='Full_G_Dense_2')
 layer.trainable = False
+layer = model.get_layer(name='Full_D_Dense_1')
+layer.trainable = False
 # in the model below, the weights of `layer` will not be updated during training
 model.compile(loss='mse', optimizer='rmsprop', metrics=['accuracy'])
 print('After freeze:')
 model.summary()
 
+# Initialization fit to set the weights
+x_train=np.random.uniform(low=-0.5,high=0.5,size=(1,common_input_dim))
+x_aux=np.random.uniform(low=-0.5,high=0.5,size=(1,common_input_dim))
+y_train=np.zeros([1]) # 0 means G model data
+model.fit({'main_input': x_train, 'aux_input': x_aux}, 
+          {'main_output': y_train}, 
+          epochs=1, batch_size=1)
+
+#
+# Define some useful arrays
+#
+int_layer = model.get_layer(name='Full_D_Dense_1')
+int_weights = int_layer.get_weights()
+
+ones_arr = np.ones([common_input_dim,int_weights[0].shape[1]])
+zeros_arr = np.zeros([common_input_dim,int_weights[0].shape[1]])
+
+# g_active turns on the g weights, data_active turns on the real data weights
+g_active = [np.concatenate([ones_arr,zeros_arr])]
+data_active = [np.concatenate([zeros_arr,ones_arr])]
+
+
 # Train the discriminator
-for k in range(10):   
+for k in range(100):   
         
-    x_train=np.random.uniform(size=(1,common_input_dim))
+    x_train=np.random.uniform(low=-0.5,high=0.5,size=(1,common_input_dim))
     x_aux=np.zeros([1,common_input_dim])
     y_train=np.zeros([1]) # 0 means G model data
+    
+    #
+    # Turn on weights on generator side and zero out weights on aux side
+    #
+    
+    int_layer.set_weights(g_active)
     
     model.fit({'main_input': x_train, 'aux_input': x_aux}, 
           {'main_output': y_train}, 
@@ -156,6 +189,12 @@ for k in range(10):
     x_aux=np.expand_dims(x_aux,axis=0)
     #
     y_train=np.ones([1]) # 1 means G model data
+    
+    #
+    # Turn off weights on generator side and turn on weights on aux side
+    #
+    int_layer.set_weights(data_active)
+    
     model.fit({'main_input': x_train, 'aux_input': x_aux}, 
           {'main_output': y_train}, 
           epochs=1, batch_size=1)
@@ -166,16 +205,17 @@ for k in range(10):
 
 # Real data
 x_train=np.zeros([1,common_input_dim])
-mnist_index=998
+mnist_index=80
 x_aux=np.ndarray.flatten(x_train_mnist[mnist_index])
 x_aux=np.expand_dims(x_aux,axis=0)
+int_layer.set_weights(data_active)
 prediction = model.predict({'main_input': x_train, 'aux_input': x_aux})
 
 # Generated Data
-###x_train=np.random.uniform(size=(1,common_input_dim))
-###x_train=np.random.uniform(size=(1,common_input_dim))
-###x_aux=np.zeros([1,common_input_dim])
-###prediction2 = model.predict({'main_input': x_train, 'aux_input': x_aux})
+x_train=np.random.uniform(low=-0.5,high=0.5,size=(1,common_input_dim))
+x_aux=np.zeros([1,common_input_dim])
+int_layer.set_weights(g_active)
+prediction2 = model.predict({'main_input': x_train, 'aux_input': x_aux})
 
 #
 # Other diagnostics
