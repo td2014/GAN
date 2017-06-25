@@ -89,7 +89,7 @@ def generate_from_alternating_sources():
         if sourceGenModel:
             x=modelG.predict(np.random.uniform(size=(1,784)), batch_size=1)
             print('modelG.name = ', modelG.name)
-            x=np.expand_dims(np.random.uniform(size=784),axis=0)
+          #  x=np.expand_dims(np.random.uniform(size=784),axis=0)
             print('sourceGenModel = ', sourceGenModel)
             print('x.shape = ', x.shape)
             y=np.zeros([1]) # 0 means G model data
