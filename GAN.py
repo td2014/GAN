@@ -46,15 +46,16 @@ common_input_dim=x_train_mnist.shape[1]*x_train_mnist.shape[2]
 ###model = Sequential(name='Full_model')
 # Generator portion of model
 main_input = Input(shape=(common_input_dim,), name='main_input')
-x=Dense(128, name='Full_G_Dense_1',input_dim=common_input_dim, use_bias=False,)(main_input)
+x=Dense(128, name='Full_G_Dense_1',input_dim=common_input_dim, use_bias=False)(main_input)
 G_out=Dense(common_input_dim, name='Full_G_Dense_2', use_bias=False)(x)
 # Add input for real data
 auxiliary_input = Input(shape=(common_input_dim,), name='aux_input')
 x = add([G_out, auxiliary_input], name='Full_Add')
 # Discriminator portion (First layer is interface)
-x = Dense(64, name='Full_D_Dense_1', use_bias=False, trainable=False, kernel_initializer='ones')(x)
+x = Dense(64, name='Full_D_Dense_1', use_bias=False, 
+          trainable=False, kernel_initializer='ones')(x)
 x = Dense(64, name='Full_D_Dense_2', use_bias=True)(x)
-x = Dropout(0.4, name='Full_D_Dropout_1')(x)
+#x = Dropout(0.4, name='Full_D_Dropout_1')(x)
 x = Dense(64, name='Full_D_Dense_3', use_bias=True)(x)
 main_output_obj = Dense(1, name='main_output', activation='sigmoid')(x)
 #
@@ -64,7 +65,7 @@ print('Baseline:')
 print(model.summary())
 
 #
-# Freeze G and first interface in D
+# Freeze G
 #      
 
 layer = model.get_layer(name='Full_G_Dense_1')
@@ -120,7 +121,7 @@ for eLoop in range(100):
     # Fit model to constructed batch
     model.fit({'main_input': x_train, 'aux_input': x_aux}, 
         {'main_output': y_train}, 
-        epochs=10, batch_size=10)
+        epochs=10, batch_size=20)
     
 #
 # output predictions
@@ -129,16 +130,16 @@ for eLoop in range(100):
 prediction = model.predict({'main_input': x_train, 'aux_input': x_aux})
 
 # Real data
-###x_train=np.zeros([1,common_input_dim])
-###mnist_index=5
-###x_aux=np.ndarray.flatten(x_train_mnist[mnist_index])
-###x_aux=np.expand_dims(x_aux,axis=0)
-###prediction = model.predict({'main_input': x_train, 'aux_input': x_aux})
+x_train=np.zeros([1,common_input_dim])
+mnist_index=5
+x_aux=np.ndarray.flatten(x_train_mnist[mnist_index])
+x_aux=np.expand_dims(x_aux,axis=0)
+prediction = model.predict({'main_input': x_train, 'aux_input': x_aux})
 
 # Generated Data
-###x_train=np.random.uniform(low=-0.5,high=0.5,size=(1,common_input_dim))
-###x_aux=np.zeros([1,common_input_dim])
-###prediction2 = model.predict({'main_input': x_train, 'aux_input': x_aux})
+x_train=np.zeros([1,common_input_dim])
+x_aux=np.random.uniform(low=-0.5,high=0.5,size=(1,common_input_dim))
+prediction2 = model.predict({'main_input': x_train, 'aux_input': x_aux})
 
 #
 # Create a minimodel and look at output of concate layer
