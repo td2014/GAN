@@ -52,9 +52,9 @@ G_out=Dense(common_input_dim, name='Full_G_Dense_2', use_bias=False)(x)
 auxiliary_input = Input(shape=(common_input_dim,), name='aux_input')
 x = add([G_out, auxiliary_input], name='Full_Add')
 # Discriminator portion (First layer is interface)
-x = Dense(256, name='Full_D_Dense_1', use_bias=False, trainable=False, kernel_initializer='ones')(x)
+x = Dense(64, name='Full_D_Dense_1', use_bias=False, trainable=False, kernel_initializer='ones')(x)
 x = Dense(64, name='Full_D_Dense_2', use_bias=True)(x)
-x = Dropout(0.5,name="Full_D_Dropout")(x)
+x = Dropout(0.4, name='Full_D_Dropout_1')(x)
 x = Dense(64, name='Full_D_Dense_3', use_bias=True)(x)
 main_output_obj = Dense(1, name='main_output', activation='sigmoid')(x)
 #
@@ -79,7 +79,7 @@ model.summary()
 #
 # Train the discriminator
 #
-for eLoop in range(1):
+for eLoop in range(100):
 
     batch_size_loop=100
     # batch_size=2*batch_size_loop # 2x because we add generated and real each step
@@ -91,7 +91,6 @@ for eLoop in range(1):
     for k in range(batch_size_loop):   
         
         # Create input for generator section.
-        #np.random.seed(42)
         x_train_batch=np.random.uniform(low=-0.5,high=0.5,size=(common_input_dim))
         x_aux_batch=np.zeros([common_input_dim])
         y_train_batch=np.zeros([1]) # 0 means G model data
@@ -121,7 +120,7 @@ for eLoop in range(1):
     # Fit model to constructed batch
     model.fit({'main_input': x_train, 'aux_input': x_aux}, 
         {'main_output': y_train}, 
-        epochs=10, batch_size=40)
+        epochs=10, batch_size=10)
     
 #
 # output predictions
