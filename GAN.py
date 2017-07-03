@@ -145,7 +145,10 @@ prediction2 = model.predict({'main_input': x_train, 'aux_input': x_aux})
 # Create a minimodel and look at output of concate layer
 # I need to verify the inputs being seen by the discriminator.
 #
-
+if __name__ == "__main__":
+    print("GAN: run directly")
+else:
+    print("GAN: imported into another module")
 #
 # End of script
 #
